@@ -46,6 +46,19 @@ namespace TootTally.TootScoreVisualizer
             {
                 TSVName = config.Bind("Generic", nameof(options.TSVName), "Default", "Enter the name of your config here. Do not put the .xml extension.")
             };
+
+            string targetFolderPath = Path.Combine(Paths.BepInExRootPath, "TootScoreVisualizer");
+            if (!Directory.Exists(targetFolderPath))
+            {
+                string sourceFolderPath = Path.Combine(Path.GetDirectoryName(Plugin.Instance.Info.Location), "TootScoreVisualizer");
+                LogInfo("TootScoreVisualizer folder not found. Attempting to move folder from " + sourceFolderPath + " to " + targetFolderPath);
+                if (Directory.Exists(sourceFolderPath))
+                    Directory.Move(sourceFolderPath, targetFolderPath);
+                else
+                    LogError("Source TootScoreVisualizer Folder Not Found. Cannot Create TootScoreVisualizer Folder. Download the module again to fix the issue.");
+                return;
+            }
+
             Harmony.CreateAndPatchAll(typeof(TootScoreVisualizer), PluginInfo.PLUGIN_GUID);
             LogInfo($"Module loaded!");
 
