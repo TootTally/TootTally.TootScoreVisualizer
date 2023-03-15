@@ -55,8 +55,11 @@ namespace TootTally.TootScoreVisualizer
                 if (Directory.Exists(sourceFolderPath))
                     Directory.Move(sourceFolderPath, targetFolderPath);
                 else
+                {
                     LogError("Source TootScoreVisualizer Folder Not Found. Cannot Create TootScoreVisualizer Folder. Download the module again to fix the issue.");
-                return;
+                    return;
+                }
+                    
             }
 
             Harmony.CreateAndPatchAll(typeof(TootScoreVisualizer), PluginInfo.PLUGIN_GUID);
