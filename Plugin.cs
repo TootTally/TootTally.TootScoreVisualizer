@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using System.IO;
 using TootTally.Utils;
+using TrombSettings;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,6 +19,7 @@ namespace TootTally.TootScoreVisualizer
 
         public const string CONFIGS_FOLDER_NAME = "/TootScoreVisualizer/";
         private const string CONFIG_NAME = "TootScoreVisualizer.cfg";
+        private const string SETTINGS_PAGE_NAME = "TootScoreVisualizer";
         public static string currentLoadedConfigName;
 
         public static Plugin Instance;
@@ -33,7 +35,7 @@ namespace TootTally.TootScoreVisualizer
             Instance = this;
 
 
-            ModuleConfigEnabled = TootTally.Plugin.Instance.Config.Bind("Modules", "TootScore Visualizer", true, "Enable TootScore Visualizer Module");
+            ModuleConfigEnabled = TootTally.Plugin.Instance.Config.Bind("Modules", "TootScoreVisualizer", true, "Enable TootScore Visualizer Module");
             OptionalTrombSettings.Add(TootTally.Plugin.Instance.moduleSettings, ModuleConfigEnabled);
             TootTally.Plugin.AddModule(this);
         }
@@ -44,8 +46,10 @@ namespace TootTally.TootScoreVisualizer
             ConfigFile config = new ConfigFile(configPath, true);
             options = new Options()
             {
-                TSVName = config.Bind("Generic", nameof(options.TSVName), "Default", "Enter the name of your config here. Do not put the .xml extension.")
+                TSVName = config.Bind("Generic", nameof(options.TSVName), "Default", "Enter the name of your config here. Do not put the .xml extension."),
+                TSVPresets = config.Bind("Generic", nameof(options.TSVPresets), Presets.Default)
             };
+            config.SettingChanged += Config_SettingChanged;
 
             string targetFolderPath = Path.Combine(Paths.BepInExRootPath, "TootScoreVisualizer");
             if (!Directory.Exists(targetFolderPath))
@@ -59,13 +63,19 @@ namespace TootTally.TootScoreVisualizer
                     LogError("Source TootScoreVisualizer Folder Not Found. Cannot Create TootScoreVisualizer Folder. Download the module again to fix the issue.");
                     return;
                 }
-                    
+
             }
+            var settingPage = OptionalTrombSettings.GetConfigPage(SETTINGS_PAGE_NAME);
+            OptionalTrombSettings.Add(settingPage, options.TSVPresets);
+            ResolvePresets();
 
             Harmony.CreateAndPatchAll(typeof(TootScoreVisualizer), PluginInfo.PLUGIN_GUID);
             LogInfo($"Module loaded!");
+        }
 
-            TSVConfig.LoadConfig(options.TSVName.Value);
+        private void Config_SettingChanged(object sender, SettingChangedEventArgs e)
+        {
+            ResolvePresets();
         }
 
         public void UnloadModule()
@@ -84,12 +94,7 @@ namespace TootTally.TootScoreVisualizer
             [HarmonyPostfix]
             public static void OnLoadControllerLoadGameplayAsyncPostfix()
             {
-                if (Plugin.currentLoadedConfigName != Plugin.options.TSVName.Value)
-                {
-                    Plugin.Instance.LogInfo("Config file changed, loading new config");
-                    TSVConfig.LoadConfig(options.TSVName.Value);
-                }
-
+                ResolvePresets();
                 isTextInitialized = false;
             }
 
@@ -106,6 +111,7 @@ namespace TootTally.TootScoreVisualizer
 
             public static void OnGameControllerAnimateOutNotePrefix(GameController __instance, ref noteendeffect[] ___allnoteendeffects)
             {
+                if (!TSVConfig.configLoaded) return;
                 if (!isTextInitialized)
                 {
                     foreach (noteendeffect noteendeffect in ___allnoteendeffects)
@@ -125,6 +131,7 @@ namespace TootTally.TootScoreVisualizer
             [HarmonyPostfix]
             public static void OnGameControllerAnimateOutNotePostfix(GameController __instance, ref noteendeffect[] ___allnoteendeffects)
             {
+                if (!TSVConfig.configLoaded) return;
                 Threshold threshold = TSVConfig.GetScoreThreshold(noteScoreAverage);
 
                 noteendeffect currentEffect = ___allnoteendeffects[noteParticles_index];
@@ -133,6 +140,23 @@ namespace TootTally.TootScoreVisualizer
                 currentEffect.combotext_txt_front.color = threshold.color;
             }
 
+        }
+
+        public static void ResolvePresets()
+        {
+            if (Plugin.options.TSVPresets.Value == Presets.Custom)
+            {
+                if (Plugin.currentLoadedConfigName != Plugin.options.TSVName.Value)
+                {
+                    Plugin.Instance.LogInfo("Config file changed, loading new config");
+                    TSVConfig.LoadConfig(Plugin.options.TSVName.Value);
+                }
+            }
+            else if (Plugin.currentLoadedConfigName != Plugin.options.TSVPresets.Value.ToString())
+            {
+                Plugin.Instance.LogInfo("Config file changed, loading new config");
+                TSVConfig.LoadConfig(Plugin.options.TSVPresets.Value.ToString());
+            }
         }
 
         //Yoinked that from basegame using DNSpy
@@ -175,7 +199,19 @@ namespace TootTally.TootScoreVisualizer
         public class Options
         {
             public ConfigEntry<string> TSVName { get; set; }
+            public ConfigEntry<Presets> TSVPresets { get; set; }
 
+        }
+
+        public enum Presets
+        {
+            Default,
+            Custom,
+            DefaultEmmett,
+            ElectroTSV,
+            ElectroTSVSimplified,
+            ElectroTSVStrict99,
+            ElectroTSVStrict99Simplified,
         }
     }
 }

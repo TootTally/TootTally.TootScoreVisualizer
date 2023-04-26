@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
+using TootTally.Graphics;
+using TootTally.Utils;
 using UnityEngine;
 
 namespace TootTally.TootScoreVisualizer
@@ -12,10 +14,12 @@ namespace TootTally.TootScoreVisualizer
     public static class TSVConfig
     {
         public static List<Threshold> scoreThresholdList;
+        public static bool configLoaded;
 
-        public static void LoadConfig(string configFileName)
+        public static void LoadConfig(string configName)
         {
-            configFileName += ".xml";
+            configLoaded = false;
+            var configFileName = configName + ".xml";
             string folderPath = Path.Combine(Paths.BepInExRootPath + Plugin.CONFIGS_FOLDER_NAME);
 
             if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
@@ -32,27 +36,36 @@ namespace TootTally.TootScoreVisualizer
 
             }
 
-            XmlSerializer serializer = new XmlSerializer(typeof(SerializableTSVConfig));
-            SerializableTSVConfig config = (SerializableTSVConfig)serializer.Deserialize(File.OpenRead(folderPath + configFileName));
-
-            List<MultiplierThreshold> multiplierThresholdList = new List<MultiplierThreshold>();
-            foreach (SerializableTSVConfig.ThresholdData data in config.multiplierThreshold)
+            try
             {
-                multiplierThresholdList.Add(new MultiplierThreshold(data.threshold, data.text, data.size, data.color));
+                XmlSerializer serializer = new XmlSerializer(typeof(SerializableTSVConfig));
+                SerializableTSVConfig config = (SerializableTSVConfig)serializer.Deserialize(File.OpenRead(folderPath + configFileName));
+
+                List<MultiplierThreshold> multiplierThresholdList = new List<MultiplierThreshold>();
+                foreach (SerializableTSVConfig.ThresholdData data in config.multiplierThreshold)
+                {
+                    multiplierThresholdList.Add(new MultiplierThreshold(data.threshold, data.text, data.size, data.color));
+                }
+
+
+
+                scoreThresholdList = new List<Threshold>();
+                foreach (SerializableTSVConfig.ThresholdData data in config.scoreThreshold)
+                {
+                    Color tempColor;
+                    ColorUtility.TryParseHtmlString(data.color, out tempColor);
+                    scoreThresholdList.Add(new Threshold(data.threshold, data.text, data.size, tempColor, config.decimalprecision, multiplierThresholdList));
+                }
+                scoreThresholdList.Sort((x, y) => x.value > y.value ? 1 : 0);
+                Plugin.currentLoadedConfigName = configName;
+                Plugin.Instance.LogInfo($"TSV config {configName} has been loaded");
+                configLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.LogError(ex.Message);
             }
 
-
-
-            scoreThresholdList = new List<Threshold>();
-            foreach (SerializableTSVConfig.ThresholdData data in config.scoreThreshold)
-            {
-                Color tempColor;
-                ColorUtility.TryParseHtmlString(data.color, out tempColor);
-                scoreThresholdList.Add(new Threshold(data.threshold, data.text, data.size, tempColor, config.decimalprecision, multiplierThresholdList));
-            }
-            scoreThresholdList.Sort((x, y) => x.value > y.value ? 1 : 0);
-            Plugin.currentLoadedConfigName = Plugin.options.TSVName.Value;
-            Plugin.Instance.LogInfo($"TSV config {configFileName} has been loaded");
         }
 
         public static Threshold GetScoreThreshold(float value)
