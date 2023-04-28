@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 using System.IO;
 using TootTally.Utils;
@@ -16,6 +17,8 @@ namespace TootTally.TootScoreVisualizer
         public string Name { get => PluginInfo.PLUGIN_NAME; set => Name = value; }
         public bool IsConfigInitialized { get; set; }
         public ConfigEntry<bool> ModuleConfigEnabled { get; set; }
+
+        public ManualLogSource GetLogger => Logger;
 
         public const string CONFIGS_FOLDER_NAME = "/TootScoreVisualizer/";
         private const string CONFIG_NAME = "TootScoreVisualizer.cfg";
