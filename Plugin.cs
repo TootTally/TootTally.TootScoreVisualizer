@@ -2,8 +2,11 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TootTally.Utils;
+using TootTally.Utils.TootTallySettings;
 using TrombSettings;
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,7 +42,6 @@ namespace TootTally.TootScoreVisualizer
 
 
             ModuleConfigEnabled = TootTally.Plugin.Instance.Config.Bind("Modules", "TootScoreVisualizer", true, "Enable TootScore Visualizer Module");
-            OptionalTrombSettings.Add(TootTally.Plugin.Instance.moduleSettings, ModuleConfigEnabled);
             TootTally.Plugin.AddModule(this);
         }
         public void LoadModule()
@@ -50,7 +52,6 @@ namespace TootTally.TootScoreVisualizer
             options = new Options()
             {
                 TSVName = config.Bind("Generic", nameof(options.TSVName), "Default", "Enter the name of your config here. Do not put the .xml extension."),
-                TSVPresets = config.Bind("Generic", nameof(options.TSVPresets), Presets.Default)
             };
             config.SettingChanged += Config_SettingChanged;
 
@@ -68,8 +69,14 @@ namespace TootTally.TootScoreVisualizer
                 }
 
             }
-            var settingPage = OptionalTrombSettings.GetConfigPage(SETTINGS_PAGE_NAME);
-            OptionalTrombSettings.Add(settingPage, options.TSVPresets);
+            var settingPage = TootTallySettingsManager.AddNewPage(SETTINGS_PAGE_NAME, "TootScoreVisualizer", 40, new UnityEngine.Color(.1f, .1f, .1f, .1f));
+            var fileNames = new List<string>();
+            if (Directory.Exists(targetFolderPath))
+            {
+                var filePaths = Directory.GetFiles(targetFolderPath);
+                filePaths.ToList().ForEach(d => fileNames.Add(Path.GetFileNameWithoutExtension(d)));
+            }
+            settingPage.AddDropdown("TSVDropdown", options.TSVName, fileNames.ToArray());
             ResolvePresets();
 
             Harmony.CreateAndPatchAll(typeof(TootScoreVisualizer), PluginInfo.PLUGIN_GUID);
@@ -147,18 +154,10 @@ namespace TootTally.TootScoreVisualizer
 
         public static void ResolvePresets()
         {
-            if (Plugin.options.TSVPresets.Value == Presets.Custom)
-            {
-                if (Plugin.currentLoadedConfigName != Plugin.options.TSVName.Value)
-                {
-                    Plugin.Instance.LogInfo("Config file changed, loading new config");
-                    TSVConfig.LoadConfig(Plugin.options.TSVName.Value);
-                }
-            }
-            else if (Plugin.currentLoadedConfigName != Plugin.options.TSVPresets.Value.ToString())
+            if (Plugin.currentLoadedConfigName != Plugin.options.TSVName.Value)
             {
                 Plugin.Instance.LogInfo("Config file changed, loading new config");
-                TSVConfig.LoadConfig(Plugin.options.TSVPresets.Value.ToString());
+                TSVConfig.LoadConfig(Plugin.options.TSVName.Value);
             }
         }
 
@@ -202,19 +201,7 @@ namespace TootTally.TootScoreVisualizer
         public class Options
         {
             public ConfigEntry<string> TSVName { get; set; }
-            public ConfigEntry<Presets> TSVPresets { get; set; }
 
-        }
-
-        public enum Presets
-        {
-            Default,
-            Custom,
-            DefaultEmmett,
-            ElectroTSV,
-            ElectroTSVSimplified,
-            ElectroTSVStrict99,
-            ElectroTSVStrict99Simplified,
         }
     }
 }
