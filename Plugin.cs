@@ -31,6 +31,7 @@ namespace TootTally.TootScoreVisualizer
         public static Plugin Instance;
         public static bool isTextInitialized;
         public static Options options;
+        public static TootTallySettingPage settingPage;
 
         public void LogInfo(string msg) => Logger.LogInfo(msg);
         public void LogError(string msg) => Logger.LogError(msg);
@@ -69,7 +70,7 @@ namespace TootTally.TootScoreVisualizer
                 }
 
             }
-            var settingPage = TootTallySettingsManager.AddNewPage(SETTINGS_PAGE_NAME, "TootScoreVisualizer", 40, new UnityEngine.Color(.1f, .1f, .1f, .1f));
+            settingPage = TootTallySettingsManager.AddNewPage(SETTINGS_PAGE_NAME, "TootScoreVisualizer", 40, new UnityEngine.Color(.1f, .1f, .1f, .1f));
             var fileNames = new List<string>();
             if (Directory.Exists(targetFolderPath))
             {
@@ -91,6 +92,7 @@ namespace TootTally.TootScoreVisualizer
         public void UnloadModule()
         {
             Harmony.UnpatchID(PluginInfo.PLUGIN_GUID);
+            settingPage.Remove();
             LogInfo($"Module unloaded!");
         }
 
