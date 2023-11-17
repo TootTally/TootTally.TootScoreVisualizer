@@ -11,6 +11,10 @@
 		<TromboneTootDir>C:\Users\Sabz\AppData\Roaming\r2modmanPlus-local\TromboneChamp\profiles\Default</TromboneTootDir>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <Optimize>True</Optimize>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
 		<PackageReference Include="BepInEx.Core" Version="5.*" />
@@ -44,15 +48,12 @@
 		<Reference Include="UnityEngine.UI">
 			<HintPath>$(TromboneChampDir)\TromboneChamp_Data\Managed\UnityEngine.UI.dll</HintPath>
 		</Reference>
-		<Reference Include="TrombSettings">
-			<HintPath>$(TromboneTootDir)\BepInEx\plugins\emmett-TrombSettings\TrombSettings.dll</HintPath>
-		</Reference>
 		<Reference Include="TootTally">
 			<HintPath>$(TromboneTootDir)\BepInEx\plugins\TootTally-TootTally\TootTally.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(TromboneTootDir)\BepInEx\plugins\TootTally-TootScoreVisualizer"/>
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(TromboneTootDir)\BepInEx\plugins\TootTally-TootScoreVisualizer" />
 	</Target>
 </Project>

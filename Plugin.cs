@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using TootTally.Utils;
 using TootTally.Utils.TootTallySettings;
-using TrombSettings;
 using UnityEngine;
 using UnityEngine.UI;
 
